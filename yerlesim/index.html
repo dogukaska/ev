@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Odaya Sığar mı? · Dijital Çakı</title>
+<meta name="description" content="Santimetreyle ölç, mobilyayı döndür ve yerleşimi gör.">
+<link rel="icon" href="/icons/dijital-caki.svg">
+<link rel="stylesheet" href="/tool.css?v=20261126d">
+<link rel="stylesheet" href="/gunluk/style.css?v=1">
+<script src="/theme.js?v=20261126c"></script>
+<script type="module" src="app.js?v=1"></script>
+</head>
+<body>
+<main class="tool daily">
+<header>
+  <a class="back" href="/#ev">Uygulamalar</a>
+  <h1>Odaya Sığar mı?</h1>
+  <p class="intro">Santimetreyle ölç, mobilyayı döndür ve yerleşimi gör.</p>
+</header>
+<section class="panel">
+  <div class="fields">
+    <label>Oda eni (cm)<input id="room-width" type="number" min="50" max="2000" value="420"></label>
+    <label>Oda boyu (cm)<input id="room-height" type="number" min="50" max="2000" value="330"></label>
+    <label>Kapı eni (cm)<input id="door-width" type="number" min="0" max="300" value="85"></label>
+    <label>Kapı konumu (cm)<input id="door-offset" type="number" min="0" max="2000" value="20" aria-describedby="door-help"></label>
+  </div>
+  <p class="muted" id="door-help">Kapı konumu alt duvarın sol köşesinden ölçülür. Kapı enini 0 yaparak gizleyebilirsin.</p>
+</section>
+<form id="furniture" class="panel">
+  <div class="fields">
+    <label class="wide">Mobilya adı<input id="name" value="Koltuk" maxlength="42" required></label>
+    <label>Eni (cm)<input id="width" type="number" min="5" max="2000" value="210" required></label>
+    <label>Boyu (cm)<input id="height" type="number" min="5" max="2000" value="85" required></label>
+  </div>
+  <button type="submit" class="primary">Mobilyayı ekle</button>
+</form>
+<section class="panel">
+  <canvas id="room" class="canvas" width="900" height="680" role="img" aria-label="Oda ve mobilyaların üstten görünümü"></canvas>
+  <p class="muted">Çizimde sürükle veya aşağıdan santimetreyle konumlandır.</p>
+  <label for="items">Mobilya</label><select id="items"></select>
+  <div class="fields" id="position" hidden>
+    <label>Soldan (cm)<input id="item-x" type="number" step="1"></label>
+    <label>Üstten (cm)<input id="item-y" type="number" step="1"></label>
+  </div>
+  <div class="row"><button id="rotate" type="button">90° döndür</button><button id="remove" type="button">Kaldır</button><button id="export" type="button">PNG indir</button></div>
+  <p id="status" role="status"></p>
+</section>
+</main>
+</body>
+</html>
