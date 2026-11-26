@@ -1,4 +1,5 @@
 import { $, download, element, read, save } from "/gunluk/common.js?v=1";
+import { drawRoom3D } from "./room-3d.js?v=1";
 
 const storageKey = "dijital-caki-oda-1";
 const canvas = $("room");
@@ -7,6 +8,15 @@ const layout = read(storageKey, { width: 420, height: 330, door: 85, offset: 20,
 const props = { "room-width": "width", "room-height": "height", "door-width": "door", "door-offset": "offset" };
 let selected = layout.items.at(-1)?.id;
 let scale, originX, originY, drag;
+let preview3D = false;
+let viewAngle = 0;
+
+function clampPosition(box, x = box.x, y = box.y) {
+  box.x = Math.max(0, Math.min(x, layout.width - box.width));
+  box.y = Math.max(0, Math.min(y, layout.height - box.height));
+}
+
+for (const box of layout.items) clampPosition(box);
 
 function item() {
   return layout.items.find(({ id }) => id === selected);
@@ -42,6 +52,10 @@ function draw() {
   const ink = css.getPropertyValue("--ink");
   const bg = css.getPropertyValue("--bg");
   const muted = css.getPropertyValue("--mute");
+  if (preview3D) {
+    drawRoom3D(ctx, layout, doorInfo(), selected, { bg, ink, muted }, viewAngle);
+    return;
+  }
   const padding = 48;
   scale = Math.min((canvas.width - 2 * padding) / layout.width, (canvas.height - 2 * padding) / layout.height);
   const w = layout.width * scale, h = layout.height * scale;
@@ -73,6 +87,9 @@ function draw() {
     ctx.stroke();
     ctx.setLineDash([]);
   }
+  ctx.beginPath();
+  ctx.rect(0, 0, w, h);
+  ctx.clip();
   for (const box of layout.items) {
     const x = box.x * scale, y = box.y * scale, bw = box.width * scale, bh = box.height * scale;
     const active = box.id === selected;
@@ -114,8 +131,10 @@ function render(persist = true) {
     $("items").value = box.id;
     $("item-x").value = box.x;
     $("item-y").value = box.y;
+    $("item-elevation").value = box.elevation ?? 80;
   }
-  $("position").hidden = !box;
+  $("position").hidden = !box || preview3D;
+  $("elevation-field").hidden = !box || !preview3D;
   $("rotate").disabled = $("remove").disabled = !box;
   $("items").disabled = !box;
   draw();
@@ -126,9 +145,19 @@ function render(persist = true) {
 for (const [id, key] of Object.entries(props)) {
   const input = $(id);
   input.value = layout[key];
-  input.addEventListener("input", () => {
-    if (!input.value || !input.checkValidity()) return;
+  const dimension = key === "width" || key === "height";
+  input.addEventListener(dimension ? "change" : "input", () => {
+    if (!input.value || !input.checkValidity()) {
+      if (dimension) input.value = layout[key];
+      return;
+    }
+    if (dimension && layout.items.some(box => box[key] > input.valueAsNumber)) {
+      input.value = layout[key];
+      $("status").textContent = "Bu ölçüde odadaki mobilyalardan biri sığmıyor.";
+      return;
+    }
     layout[key] = input.valueAsNumber;
+    if (dimension) for (const box of layout.items) clampPosition(box);
     render();
   });
 }
@@ -137,6 +166,10 @@ $("furniture").addEventListener("submit", (event) => {
   const name = $("name").value.trim();
   if (!name) return;
   const width = $("width").valueAsNumber, height = $("height").valueAsNumber;
+  if (width > layout.width || height > layout.height) {
+    $("status").textContent = "Bu mobilya oda ölçülerine sığmıyor.";
+    return;
+  }
   const id = crypto.randomUUID();
   layout.items.push({ id, name, width, height,
     x: Math.max(0, Math.round((layout.width - width) / 2)),
@@ -147,7 +180,12 @@ $("furniture").addEventListener("submit", (event) => {
 $("items").addEventListener("change", () => { selected = $("items").value; render(false); });
 $("rotate").addEventListener("click", () => {
   const box = item();
+  if (box.height > layout.width || box.width > layout.height) {
+    $("status").textContent = "Mobilya döndürüldüğünde odaya sığmıyor.";
+    return;
+  }
   [box.width, box.height] = [box.height, box.width];
+  clampPosition(box);
   render();
 });
 $("remove").addEventListener("click", () => {
@@ -158,7 +196,10 @@ $("remove").addEventListener("click", () => {
 for (const [id, key] of [["item-x", "x"], ["item-y", "y"]]) {
   $(id).addEventListener("change", () => {
     const box = item();
-    if (box && Number.isFinite($(id).valueAsNumber)) box[key] = Math.max(-2000, Math.min(2000, $(id).valueAsNumber));
+    if (box && Number.isFinite($(id).valueAsNumber)) {
+      box[key] = Math.round($(id).valueAsNumber);
+      clampPosition(box);
+    }
     render();
   });
 }
@@ -168,6 +209,7 @@ function point(event) {
     y: ((event.clientY - rect.top) * canvas.height / rect.height - originY) / scale };
 }
 canvas.addEventListener("pointerdown", (event) => {
+  if (preview3D || drag) return;
   const p = point(event);
   const box = layout.items.findLast(({ x, y, width, height }) => p.x >= x && p.x <= x + width && p.y >= y && p.y <= y + height);
   if (!box) return;
@@ -179,15 +221,34 @@ canvas.addEventListener("pointerdown", (event) => {
 canvas.addEventListener("pointermove", (event) => {
   if (!drag || drag.pointer !== event.pointerId) return;
   const p = point(event), box = item();
-  box.x = Math.round(p.x - drag.x);
-  box.y = Math.round(p.y - drag.y);
+  clampPosition(box, Math.round(p.x - drag.x), Math.round(p.y - drag.y));
   $("item-x").value = box.x;
   $("item-y").value = box.y;
   draw();
 });
 canvas.addEventListener("lostpointercapture", () => { drag = undefined; render(); });
+$("preview-3d").addEventListener("click", () => {
+  preview3D = !preview3D;
+  $("preview-3d").setAttribute("aria-pressed", String(preview3D));
+  $("turn-view").hidden = !preview3D;
+  canvas.setAttribute("aria-label", preview3D ? "Oda ve mobilyaların üç boyutlu görünümü" : "Oda ve mobilyaların üstten görünümü");
+  $("view-help").textContent = preview3D ? "Mobilyalar ölçülerine göre gösterilir. Yüksekliği aşağıdan ayarlayabilirsin." :
+    "Mobilyayı çizimde sürükle veya santimetreyle konumlandır.";
+  canvas.style.touchAction = preview3D ? "auto" : "";
+  render(false);
+});
+$("turn-view").addEventListener("click", () => {
+  viewAngle = (viewAngle + 1) % 4;
+  draw();
+});
+$("item-elevation").addEventListener("change", (event) => {
+  const box = item();
+  const input = event.currentTarget;
+  if (box && input.value && input.checkValidity()) box.elevation = input.valueAsNumber;
+  render();
+});
 $("export").addEventListener("click", () => canvas.toBlob((blob) => {
-  if (blob) download(blob, "oda-yerlesimi.png");
+  if (blob) download(blob, preview3D ? "oda-yerlesimi-3d.png" : "oda-yerlesimi.png");
 }));
 new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
