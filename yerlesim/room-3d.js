@@ -8,6 +8,7 @@ export function drawRoom3D(ctx, layout, door, selected, colors, angle) {
     return [x, y];
   };
   const wall = 110;
+  const faces = [];
   const boxes = layout.items.map(box => {
     const [ax, ay] = toView(box.x, box.y);
     const [bx, by] = toView(Math.min(box.x + box.width, layout.width), Math.min(box.y + box.height, layout.height));
@@ -15,8 +16,10 @@ export function drawRoom3D(ctx, layout, door, selected, colors, angle) {
       height: Math.abs(ay - by), elevation: box.elevation ?? 80 };
   }).sort((a, b) => (a.x + a.y + (a.width + a.height) / 2) -
     (b.x + b.y + (b.width + b.height) / 2));
-  const rise = (x, y, z = 0) => (x + y) * .48 - z;
-  const minY = Math.min(-wall, ...boxes.map(box => rise(box.x, box.y, box.elevation)));
+  const tilt = .48;
+  const rise = (x, y, z = 0) => (x + y) * tilt - z;
+  // Fit the tallest box at any location so dragging cannot change the projection.
+  const minY = -Math.max(wall, ...boxes.map(box => box.elevation));
   const maxY = rise(width, height);
   const padding = 48;
   const scale = Math.min(
@@ -28,21 +31,22 @@ export function drawRoom3D(ctx, layout, door, selected, colors, angle) {
   const project = ([x, y, z]) => [ox + (x - y) * scale, oy + rise(x, y, z) * scale];
 
   function polygon(points, stroke, fillOpacity = 0, fill = colors.ink) {
-    ctx.beginPath();
+    const path = new Path2D();
     points.forEach((point, index) => {
       const [x, y] = project(point);
-      if (index === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+      if (index === 0) path.moveTo(x, y);
+      else path.lineTo(x, y);
     });
-    ctx.closePath();
+    path.closePath();
     if (fillOpacity) {
       ctx.globalAlpha = fillOpacity;
       ctx.fillStyle = fill;
-      ctx.fill();
+      ctx.fill(path);
       ctx.globalAlpha = 1;
     }
     ctx.strokeStyle = stroke;
-    ctx.stroke();
+    ctx.stroke(path);
+    return path;
   }
 
   ctx.save();
@@ -73,7 +77,7 @@ export function drawRoom3D(ctx, layout, door, selected, colors, angle) {
     ctx.lineWidth = box.id === selected ? 2.5 : 1.5;
     const drawFace = (face, shade) => {
       polygon(face, colors.bg, 1, colors.bg);
-      polygon(face, outline, shade);
+      faces.push({ id: box.id, path: polygon(face, outline, shade) });
     };
     drawFace([top[1], [xEnd, y], [xEnd, yEnd], top[2]], .28);
     drawFace([top[3], [x, yEnd], [xEnd, yEnd], top[2]], .18);
@@ -90,4 +94,17 @@ export function drawRoom3D(ctx, layout, door, selected, colors, angle) {
     }
   }
   ctx.restore();
+
+  return {
+    pick: ({ x, y }) => faces.findLast(({ path }) => ctx.isPointInPath(path, x, y))?.id,
+    pointToRoom: ({ x, y }) => {
+      const diagonal = (x - ox) / scale;
+      const depth = (y - oy) / (scale * tilt);
+      const a = (depth + diagonal) / 2, b = (depth - diagonal) / 2;
+      if (angle === 1) return { x: b, y: width - a };
+      if (angle === 2) return { x: width - a, y: height - b };
+      if (angle === 3) return { x: height - b, y: a };
+      return { x: a, y: b };
+    },
+  };
 }
