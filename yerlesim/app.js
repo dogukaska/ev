@@ -1,5 +1,5 @@
 import { $, download, element, read, save } from "/gunluk/common.js?v=1";
-import { drawRoom3D } from "./room-3d.js?v=1";
+import { drawRoom3D } from "./room-3d.js?v=2";
 
 const storageKey = "dijital-caki-oda-1";
 const canvas = $("room");
@@ -10,6 +10,7 @@ let selected = layout.items.at(-1)?.id;
 let scale, originX, originY, drag;
 let preview3D = false;
 let viewAngle = 0;
+let projection3D;
 
 function clampPosition(box, x = box.x, y = box.y) {
   box.x = Math.max(0, Math.min(x, layout.width - box.width));
@@ -53,7 +54,7 @@ function draw() {
   const bg = css.getPropertyValue("--bg");
   const muted = css.getPropertyValue("--mute");
   if (preview3D) {
-    drawRoom3D(ctx, layout, doorInfo(), selected, { bg, ink, muted }, viewAngle);
+    projection3D = drawRoom3D(ctx, layout, doorInfo(), selected, { bg, ink, muted }, viewAngle);
     return;
   }
   const padding = 48;
@@ -203,24 +204,34 @@ for (const [id, key] of [["item-x", "x"], ["item-y", "y"]]) {
     render();
   });
 }
-function point(event) {
+function canvasPoint(event) {
   const rect = canvas.getBoundingClientRect();
-  return { x: ((event.clientX - rect.left) * canvas.width / rect.width - originX) / scale,
-    y: ((event.clientY - rect.top) * canvas.height / rect.height - originY) / scale };
+  return { x: (event.clientX - rect.left - canvas.clientLeft) * canvas.width / canvas.clientWidth,
+    y: (event.clientY - rect.top - canvas.clientTop) * canvas.height / canvas.clientHeight };
 }
+
+function pointToRoom2D({ x, y }) {
+  return { x: (x - originX) / scale, y: (y - originY) / scale };
+}
+
 canvas.addEventListener("pointerdown", (event) => {
-  if (preview3D || drag) return;
-  const p = point(event);
-  const box = layout.items.findLast(({ x, y, width, height }) => p.x >= x && p.x <= x + width && p.y >= y && p.y <= y + height);
+  if (drag || event.button !== 0) return;
+  const point = canvasPoint(event);
+  const pointToRoom = preview3D ? projection3D.pointToRoom : pointToRoom2D;
+  const p = pointToRoom(point);
+  const picked = preview3D ? projection3D.pick(point) : undefined;
+  const box = preview3D
+    ? layout.items.find(box => box.id === picked)
+    : layout.items.findLast(({ x, y, width, height }) => p.x >= x && p.x <= x + width && p.y >= y && p.y <= y + height);
   if (!box) return;
   selected = box.id;
-  drag = { pointer: event.pointerId, x: p.x - box.x, y: p.y - box.y };
+  drag = { pointer: event.pointerId, box, pointToRoom, x: p.x - box.x, y: p.y - box.y };
   canvas.setPointerCapture(event.pointerId);
   render(false);
 });
 canvas.addEventListener("pointermove", (event) => {
   if (!drag || drag.pointer !== event.pointerId) return;
-  const p = point(event), box = item();
+  const p = drag.pointToRoom(canvasPoint(event)), box = drag.box;
   clampPosition(box, Math.round(p.x - drag.x), Math.round(p.y - drag.y));
   $("item-x").value = box.x;
   $("item-y").value = box.y;
@@ -232,9 +243,8 @@ $("preview-3d").addEventListener("click", () => {
   $("preview-3d").setAttribute("aria-pressed", String(preview3D));
   $("turn-view").hidden = !preview3D;
   canvas.setAttribute("aria-label", preview3D ? "Oda ve mobilyaların üç boyutlu görünümü" : "Oda ve mobilyaların üstten görünümü");
-  $("view-help").textContent = preview3D ? "Mobilyalar ölçülerine göre gösterilir. Yüksekliği aşağıdan ayarlayabilirsin." :
+  $("view-help").textContent = preview3D ? "Mobilyayı sürükle. Yüksekliği aşağıdan ayarlayabilirsin." :
     "Mobilyayı çizimde sürükle veya santimetreyle konumlandır.";
-  canvas.style.touchAction = preview3D ? "auto" : "";
   render(false);
 });
 $("turn-view").addEventListener("click", () => {
