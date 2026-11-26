@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="/tool.css?v=20261126d">
 <link rel="stylesheet" href="/gunluk/style.css?v=1">
 <script src="/theme.js?v=20261126c"></script>
-<script type="module" src="app.js?v=1"></script>
+<script type="module" src="app.js?v=2"></script>
 </head>
 <body>
 <main class="tool daily">
@@ -36,13 +36,18 @@
   <button type="submit" class="primary">Mobilyayı ekle</button>
 </form>
 <section class="panel">
+  <div class="row">
+    <button id="preview-3d" type="button" aria-pressed="false" aria-controls="room">3D önizleme</button>
+    <button id="turn-view" type="button" aria-controls="room" hidden>Görünümü döndür</button>
+  </div>
   <canvas id="room" class="canvas" width="900" height="680" role="img" aria-label="Oda ve mobilyaların üstten görünümü"></canvas>
-  <p class="muted">Çizimde sürükle veya aşağıdan santimetreyle konumlandır.</p>
+  <p class="muted" id="view-help">Mobilyayı çizimde sürükle veya santimetreyle konumlandır.</p>
   <label for="items">Mobilya</label><select id="items"></select>
   <div class="fields" id="position" hidden>
     <label>Soldan (cm)<input id="item-x" type="number" step="1"></label>
     <label>Üstten (cm)<input id="item-y" type="number" step="1"></label>
   </div>
+  <label id="elevation-field" hidden>Mobilya yüksekliği (cm)<input id="item-elevation" type="number" min="1" max="500" step="1"></label>
   <div class="row"><button id="rotate" type="button">90° döndür</button><button id="remove" type="button">Kaldır</button><button id="export" type="button">PNG indir</button></div>
   <p id="status" role="status"></p>
 </section>
