@@ -8,8 +8,9 @@
 <link rel="icon" href="/icons/dijital-caki.svg">
 <link rel="stylesheet" href="/tool.css?v=20261126d">
 <link rel="stylesheet" href="/gunluk/style.css?v=1">
+<link rel="stylesheet" href="style.css?v=1">
 <script src="/theme.js?v=20261126c"></script>
-<script type="module" src="app.js?v=4"></script>
+<script type="module" src="app.js?v=5"></script>
 </head>
 <body>
 <main class="tool daily">
@@ -29,10 +30,14 @@
 </section>
 <form id="furniture" class="panel">
   <div class="fields">
+    <label class="wide">Eşya ara<input id="catalog-query" type="search" autocomplete="off" placeholder="Örn. televizyon, tablo, ranza" aria-describedby="catalog-info"></label>
+    <label class="wide">Eşya modeli<select id="new-model"></select></label>
+    <p id="catalog-info" class="muted wide" aria-live="polite"></p>
     <label class="wide">Mobilya adı<input id="name" value="Koltuk" maxlength="42" required></label>
-    <label class="wide">Mobilya modeli<select id="new-model"></select></label>
-    <label>Eni (cm)<input id="width" type="number" min="5" max="2000" value="210" required></label>
-    <label>Boyu (cm)<input id="height" type="number" min="5" max="2000" value="85" required></label>
+    <label>Eni (cm)<input id="width" type="number" min="1" max="2000" value="210" required></label>
+    <label>Derinlik (cm)<input id="height" type="number" min="1" max="2000" value="85" required></label>
+    <label>Yükseklik (cm)<input id="height-new" type="number" min="1" max="500" value="80" required></label>
+    <label>Yerden boşluk (cm)<input id="base-new" type="number" min="0" max="350" value="0" required></label>
   </div>
   <button type="submit" class="primary">Mobilyayı ekle</button>
 </form>
@@ -49,7 +54,10 @@
     <label>Soldan (cm)<input id="item-x" type="number" step="1"></label>
     <label>Üstten (cm)<input id="item-y" type="number" step="1"></label>
   </div>
-  <label id="elevation-field" hidden>Mobilya yüksekliği (cm)<input id="item-elevation" type="number" min="1" max="500" step="1"></label>
+  <div id="elevation-field" class="fields" hidden>
+    <label>Mobilya yüksekliği (cm)<input id="item-elevation" type="number" min="1" max="500" step="1"></label>
+    <label>Yerden boşluk (cm)<input id="item-base" type="number" min="0" max="350" step="1"></label>
+  </div>
   <div class="row"><button id="rotate" type="button">90° döndür</button><button id="remove" type="button">Kaldır</button><button id="export" type="button">PNG indir</button></div>
   <p id="status" role="status"></p>
 </section>

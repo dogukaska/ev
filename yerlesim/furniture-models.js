@@ -1,16 +1,22 @@
-export const modelChoices = [
-  ["auto", "Ada göre"], ["sofa", "Koltuk"], ["bed", "Yatak"],
-  ["table", "Masa"], ["cabinet", "Dolap"], ["tv", "TV ünitesi"], ["chair", "Sandalye"], ["block", "Özel kutu"],
+import { furnitureById } from "./furniture-catalog.js?v=1";
+import { detailedParts } from "./furniture-details.js?v=1";
+
+export const basicModels = [
+  ["auto", "Ada göre"], ["block", "Özel ölçülü kutu"], ["tv", "Televizyon ve sehpa"],
 ];
 
 export function modelType(box) {
-  if (box.model && box.model !== "auto") return box.model;
+  if (box.model === "tv") return "tv";
+  const preset = furnitureById.get(box.model);
+  if (preset) return preset[2];
+  if (box.model === "block") return "block";
   const name = box.name.toLocaleLowerCase("tr");
   if (/koltuk|kanepe|sofa/.test(name)) return "sofa";
   if (/yatak|karyola/.test(name)) return "bed";
   if (/masa|sehpa/.test(name)) return "table";
   if (/dolap|büfe|kitaplık|gardırop/.test(name)) return "cabinet";
   if (/televizyon|\btv\b/.test(name)) return "tv";
+  if (/tablo|çerçeve/.test(name)) return "picture";
   if (/sandalye|tabure/.test(name)) return "chair";
   return "block";
 }
@@ -28,7 +34,7 @@ export function modelParts(box) {
   const type = modelType(box);
   if (type === "sofa") {
     // Like FloorPlan 3D's sofa, longer models add an extra seat cushion.
-    const seats = ((box.rotation ?? 0) % 2 ? box.height : box.width) > 220 ? 3 : 2;
+    const seats = ((box.rotation ?? 0) % 2 ? box.height : box.width) >= 210 ? 3 : 2;
     return [
       ...legs(colors.darkOak, 0, .10),
       [0, .01, 1, 1, .10, .36, colors.fabric],
@@ -41,15 +47,16 @@ export function modelParts(box) {
       }),
     ];
   }
-  if (type === "bed") {
+  if (type === "bed" || type === "singleBed") {
     return [
       ...legs(colors.darkOak, 0, .14),
       [.02, .035, .98, 1, .14, .35, colors.oak],
       [0, 0, 1, .05, .12, 1, colors.darkOak],
       [.055, .055, .945, .965, .35, .56, colors.pale],
       [.06, .34, .94, .965, .56, .61, colors.sheet],
-      [.11, .09, .47, .31, .56, .69, colors.pale],
-      [.53, .09, .89, .31, .56, .69, colors.pale],
+      ...(type === "singleBed" ? [[.19, .09, .81, .31, .56, .69, colors.pale]] : [
+        [.11, .09, .47, .31, .56, .69, colors.pale], [.53, .09, .89, .31, .56, .69, colors.pale],
+      ]),
     ];
   }
   if (type === "table") return [
@@ -80,7 +87,7 @@ export function modelParts(box) {
     [0, 0, 1, .17, .81, 1, colors.oak],
     [.04, .08, .96, .94, .56, .62, colors.cushion],
   ];
-  return [[0, 0, 1, 1, 0, 1, colors.trim]];
+  return detailedParts(type) ?? [[0, 0, 1, 1, 0, 1, colors.trim]];
 }
 
 export function modelRect([x0, y0, x1, y1], rotation = 0) {
@@ -88,4 +95,20 @@ export function modelRect([x0, y0, x1, y1], rotation = 0) {
   if (rotation === 2) return [1 - x1, 1 - y1, 1 - x0, 1 - y0];
   if (rotation === 3) return [y0, 1 - x1, y1, 1 - x0];
   return [x0, y0, x1, y1];
+}
+
+export function furnitureFootprint(box) {
+  const type = modelType(box);
+  const rectangles = type === "sectional" ? [[0, 0, 1, .46], [.61, .46, 1, 1]] :
+    type === "cornerDesk" ? [[0, 0, 1, .44], [.60, .44, 1, 1]] : [[0, 0, 1, 1]];
+  return rectangles.map(rectangle => {
+    const [left, top, right, bottom] = modelRect(rectangle, box.rotation ?? 0);
+    return { x: box.x + left * box.width, y: box.y + top * box.height,
+      width: (right - left) * box.width, height: (bottom - top) * box.height };
+  });
+}
+
+// Rugs are drawn at floor level even if added after the furniture resting on them.
+export function floorOrder(box) {
+  return modelType(box) === "rug" ? -1 : 0;
 }

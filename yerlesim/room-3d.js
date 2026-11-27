@@ -1,4 +1,4 @@
-import { modelParts, modelRect } from "./furniture-models.js?v=1";
+import { floorOrder, furnitureFootprint, modelParts, modelRect } from "./furniture-models.js?v=2";
 
 function isBehind(a, b) {
   const across = a.x0 < b.x1 && b.x0 < a.x1;
@@ -36,13 +36,14 @@ export function drawRoom3D(ctx, layout, door, selected, colors, angle) {
     const [ax, ay] = toView(box.x, box.y);
     const [bx, by] = toView(Math.min(box.x + box.width, layout.width), Math.min(box.y + box.height, layout.height));
     return { ...box, x: Math.min(ax, bx), y: Math.min(ay, by), width: Math.abs(ax - bx),
-      height: Math.abs(ay - by), parts: modelParts(box), elevation: box.elevation ?? 80 };
-  }).sort((a, b) => (a.x + a.y + (a.width + a.height) / 2) -
+      height: Math.abs(ay - by), rotation: ((box.rotation ?? 0) + angle) % 4,
+      parts: modelParts(box), elevation: box.elevation ?? 80, base: box.base ?? 0 };
+  }).sort((a, b) => floorOrder(a) - floorOrder(b) || (a.x + a.y + (a.width + a.height) / 2) -
     (b.x + b.y + (b.width + b.height) / 2));
   const tilt = .48;
   const rise = (x, y, z = 0) => (x + y) * tilt - z;
   // Fit the tallest box at any location so dragging cannot change the projection.
-  const minY = -Math.max(wall, ...boxes.map(box => box.elevation));
+  const minY = -Math.max(wall, ...boxes.map(box => box.base + box.elevation));
   const maxY = rise(width, height);
   const padding = 48;
   const scale = Math.min(
@@ -102,9 +103,13 @@ export function drawRoom3D(ctx, layout, door, selected, colors, angle) {
   polygon([corner, left, [0, height, wall], [0, 0, wall]], colors.muted, 1, wallB);
   polygon([corner, right, [width, 0, 9], [0, 0, 9]], null, .38, "#9f7959");
   polygon([corner, left, [0, height, 9], [0, 0, 9]], null, .27, "#9f7959");
+  function outline(box, stroke, opacity = 0) {
+    for (const { x, y, width, height } of furnitureFootprint(box)) {
+      polygon([[x, y], [x + width, y], [x + width, y + height], [x, y + height]], stroke, opacity, "#30251f");
+    }
+  }
   for (const box of boxes) {
-    polygon([[box.x, box.y], [box.x + box.width, box.y],
-      [box.x + box.width, box.y + box.height], [box.x, box.y + box.height]], null, .26, "#30251f");
+    if (!box.base && floorOrder(box) >= 0) outline(box, null, .26);
   }
   if (door.width) {
     const points = [toView(door.offset, layout.height)];
@@ -118,22 +123,23 @@ export function drawRoom3D(ctx, layout, door, selected, colors, angle) {
   }
 
   for (const box of boxes) {
-    const { x, y, elevation } = box;
+    const { x, y, elevation, base } = box;
     const xEnd = x + box.width, yEnd = y + box.height;
-    const top = [[x, y, elevation], [xEnd, y, elevation], [xEnd, yEnd, elevation], [x, yEnd, elevation]];
+    const high = base + elevation;
+    const top = [[x, y, high], [xEnd, y, high], [xEnd, yEnd, high], [x, yEnd, high]];
     const picked = box.id === selected;
     const hitFaces = [
-      [top[1], [xEnd, y], [xEnd, yEnd], top[2]],
-      [top[3], [x, yEnd], [xEnd, yEnd], top[2]],
+      [top[1], [xEnd, y, base], [xEnd, yEnd, base], top[2]],
+      [top[3], [x, yEnd, base], [xEnd, yEnd, base], top[2]],
       top,
     ];
-    for (const face of hitFaces) faces.push({ id: box.id, path: polygon(face) });
+    const flexibleOutline = furnitureFootprint(box).length > 1;
+    if (!flexibleOutline) for (const face of hitFaces) faces.push({ id: box.id, path: polygon(face) });
 
-    const rotation = ((box.rotation ?? 0) + angle) % 4;
     const parts = box.parts.map(part => {
-      const [a, b, c, d] = modelRect(part, rotation);
+      const [a, b, c, d] = modelRect(part, box.rotation);
       return { x0: x + a * box.width, y0: y + b * box.height, x1: x + c * box.width, y1: y + d * box.height,
-        bottom: part[4] * elevation, top: part[5] * elevation, color: part[6] };
+        bottom: base + part[4] * elevation, top: base + part[5] * elevation, color: part[6] };
     }).sort((a, b) => (a.x0 + a.y0 + a.x1 + a.y1) - (b.x0 + b.y0 + b.x1 + b.y1) || a.bottom - b.bottom);
     ctx.lineWidth = 1;
     for (const part of orderParts(parts)) {
@@ -144,14 +150,15 @@ export function drawRoom3D(ctx, layout, door, selected, colors, angle) {
         [[x0, y0, high], [x1, y0, high], [x1, y1, high], [x0, y1, high]],
       ];
       for (const [i, face] of surfaces.entries()) {
-        polygon(face, "#544d47", 1, color);
+        const path = polygon(face, "#544d47", 1, color);
+        if (flexibleOutline) faces.push({ id: box.id, path });
         if (i < 2) polygon(face, null, i === 0 ? .3 : .14, "#282524");
       }
     }
     if (picked) {
       ctx.lineWidth = 2;
       ctx.setLineDash([5, 4]);
-      polygon([[x, y], [xEnd, y], [xEnd, yEnd], [x, yEnd]], dark ? "#f8efdf" : "#3e4d45");
+      outline(box, dark ? "#f8efdf" : "#3e4d45");
       ctx.setLineDash([]);
     }
 

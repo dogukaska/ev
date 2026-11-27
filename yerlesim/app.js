@@ -1,6 +1,7 @@
 import { $, download, element, read, save } from "/gunluk/common.js?v=1";
-import { drawRoom3D } from "./room-3d.js?v=3";
-import { modelChoices, modelParts, modelRect } from "./furniture-models.js?v=1";
+import { drawRoom3D } from "./room-3d.js?v=4";
+import { basicModels, floorOrder, furnitureFootprint, modelParts, modelRect } from "./furniture-models.js?v=2";
+import { furnitureById, furnitureGroups, searchFurniture } from "./furniture-catalog.js?v=1";
 
 const storageKey = "dijital-caki-oda-1";
 const canvas = $("room");
@@ -12,8 +13,62 @@ let scale, originX, originY, drag;
 let preview3D = false;
 let viewAngle = 0;
 let projection3D;
-for (const id of ["new-model", "item-model"]) {
-  $(id).append(...modelChoices.map(([value, label]) => element("option", label, { value })));
+function fillModels(select, query = "") {
+  const previous = select.value;
+  const basic = basicModels.map(([value, label]) => element("option", label, { value }));
+  const groups = [];
+  let count = 0;
+  for (const [category, presets] of furnitureGroups) {
+    const matches = presets.filter(([, name, , , , , , aliases]) =>
+      query.split(/\s+/).every(word => searchFurniture([name, category, aliases].filter(Boolean).join(" ")).includes(word)));
+    if (!matches.length) continue;
+    const group = element("optgroup", undefined, { label: category });
+    group.append(...matches.map(([value, label]) => element("option", label, { value })));
+    groups.push(group);
+    count += matches.length;
+  }
+  if (query && furnitureById.has(previous) && !groups.some(group => [...group.children].some(option => option.value === previous))) {
+    const [, label] = furnitureById.get(previous);
+    basic.push(element("option", label, { value: previous }));
+  }
+  select.replaceChildren(...basic, ...groups);
+  select.value = previous || "auto";
+  return count;
+}
+
+const modelSelect = $("new-model");
+const catalogInfo = $("catalog-info");
+function filterCatalog() {
+  const query = searchFurniture($("catalog-query").value);
+  const count = fillModels(modelSelect, query);
+  catalogInfo.textContent = query ? (count ? count + " eşya bulundu. Listeden seç." : "Eşleşen eşya bulunamadı.") :
+    count + " hazır eşya. Seçtiğinde ölçüleri doldurulur.";
+}
+
+fillModels($("item-model"));
+filterCatalog();
+$("catalog-query").addEventListener("input", filterCatalog);
+$("catalog-query").addEventListener("keydown", event => {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  const options = modelSelect.querySelectorAll("optgroup option");
+  if (options.length === 1) {
+    modelSelect.value = options[0].value;
+    applyPreset();
+  }
+  modelSelect.focus();
+});
+modelSelect.addEventListener("change", applyPreset);
+
+function applyPreset() {
+  const preset = furnitureById.get(modelSelect.value);
+  if (!preset) return;
+  const [, name, , width, depth, height, base = 0] = preset;
+  $("name").value = name;
+  $("width").value = width;
+  $("height").value = depth;
+  $("height-new").value = height;
+  $("base-new").value = base;
 }
 
 function clampPosition(box, x = box.x, y = box.y) {
@@ -32,7 +87,7 @@ function doorInfo() {
   return { offset, width: Math.min(layout.door, layout.width - offset, layout.height) };
 }
 
-function touchesDoor(box) {
+function footprintTouchesDoor(box) {
   const { offset, width } = doorInfo();
   if (!width || box.x + box.width <= offset || box.y >= layout.height) return false;
   const dx = Math.max(0, box.x - offset);
@@ -41,13 +96,18 @@ function touchesDoor(box) {
 }
 
 function overlaps(a, b) {
-  return a !== b && a.x < b.x + b.width && b.x < a.x + a.width &&
-    a.y < b.y + b.height && b.y < a.y + a.height;
+  if (a === b || floorOrder(a) !== floorOrder(b)) return false;
+  const bottomA = a.base ?? 0, bottomB = b.base ?? 0;
+  if (bottomA + (a.elevation ?? 80) <= bottomB || bottomB + (b.elevation ?? 80) <= bottomA) return false;
+  const other = furnitureFootprint(b);
+  return furnitureFootprint(a).some(first => other.some(second =>
+    first.x < second.x + second.width && second.x < first.x + first.width &&
+    first.y < second.y + second.height && second.y < first.y + first.height));
 }
 
 function issue(box) {
   if (box.x < 0 || box.y < 0 || box.x + box.width > layout.width || box.y + box.height > layout.height) return "oda sınırını aşıyor";
-  if (touchesDoor(box)) return "kapının açılma alanına giriyor";
+  if ((box.base ?? 0) < 210 && furnitureFootprint(box).some(footprintTouchesDoor)) return "kapının açılma alanına giriyor";
   if (layout.items.some((other) => overlaps(box, other))) return "başka bir mobilyayla örtüşüyor";
   return "";
 }
@@ -109,7 +169,8 @@ function draw() {
   ctx.beginPath();
   ctx.rect(0, 0, w, h);
   ctx.clip();
-  for (const box of layout.items) {
+  const drawOrder = [...layout.items].sort((a, b) => floorOrder(a) - floorOrder(b));
+  for (const box of drawOrder) {
     const x = box.x * scale, y = box.y * scale, bw = box.width * scale, bh = box.height * scale;
     const active = box.id === selected;
     ctx.globalAlpha = dark ? .82 : .92;
@@ -122,20 +183,26 @@ function draw() {
     ctx.strokeStyle = active ? ink : muted;
     ctx.lineWidth = active ? 3 : 1.5;
     if (issue(box)) ctx.setLineDash([5, 4]);
-    ctx.strokeRect(x, y, bw, bh);
+    const areas = furnitureFootprint(box);
+    for (const area of areas) {
+      ctx.strokeRect(area.x * scale, area.y * scale, area.width * scale, area.height * scale);
+    }
     ctx.setLineDash([]);
-    if (bw >= 20 && bh >= 18) {
+    const [labelArea] = areas;
+    const lx = labelArea.x * scale, ly = labelArea.y * scale;
+    const lw = labelArea.width * scale, lh = labelArea.height * scale;
+    if (lw >= 20 && lh >= 18) {
       ctx.save();
       ctx.beginPath();
-      ctx.rect(x, y, bw, bh);
+      ctx.rect(lx, ly, lw, lh);
       ctx.clip();
       ctx.font = "600 15px system-ui";
       ctx.textBaseline = "middle";
-      const textWidth = Math.min(bw - 6, ctx.measureText(box.name).width);
+      const textWidth = Math.min(lw - 6, ctx.measureText(box.name).width);
       ctx.fillStyle = "#272725c9";
-      ctx.fillRect(x + (bw - textWidth) / 2 - 2, y + bh / 2 - 9, textWidth + 4, 18);
+      ctx.fillRect(lx + (lw - textWidth) / 2 - 2, ly + lh / 2 - 9, textWidth + 4, 18);
       ctx.fillStyle = "#fffaf4";
-      ctx.fillText(box.name, x + bw / 2, y + bh / 2, bw - 6);
+      ctx.fillText(box.name, lx + lw / 2, ly + lh / 2, lw - 6);
       ctx.restore();
     }
   }
@@ -157,6 +224,7 @@ function render(persist = true) {
     $("item-x").value = box.x;
     $("item-y").value = box.y;
     $("item-elevation").value = box.elevation ?? 80;
+    $("item-base").value = box.base ?? 0;
     $("item-model").value = box.model ?? "auto";
   }
   $("model-field").hidden = !box;
@@ -198,7 +266,8 @@ $("furniture").addEventListener("submit", (event) => {
     return;
   }
   const id = crypto.randomUUID();
-  layout.items.push({ id, name, width, height, model: $("new-model").value,
+  layout.items.push({ id, name, width, height, model: modelSelect.value,
+    elevation: $("height-new").valueAsNumber, base: $("base-new").valueAsNumber,
     x: Math.max(0, Math.round((layout.width - width) / 2)),
     y: Math.max(0, Math.round((layout.height - height) / 2)) });
   selected = id;
@@ -249,7 +318,9 @@ canvas.addEventListener("pointerdown", (event) => {
   const picked = preview3D ? projection3D.pick(point) : undefined;
   const box = preview3D
     ? layout.items.find(box => box.id === picked)
-    : layout.items.findLast(({ x, y, width, height }) => p.x >= x && p.x <= x + width && p.y >= y && p.y <= y + height);
+    : [...layout.items].sort((a, b) => floorOrder(a) - floorOrder(b)).findLast(entry =>
+      furnitureFootprint(entry).some(({ x, y, width, height }) =>
+        p.x >= x && p.x <= x + width && p.y >= y && p.y <= y + height));
   if (!box) return;
   selected = box.id;
   drag = { pointer: event.pointerId, box, pointToRoom, x: p.x - box.x, y: p.y - box.y };
@@ -284,12 +355,14 @@ $("item-model").addEventListener("change", event => {
   box.model = event.currentTarget.value;
   render();
 });
-$("item-elevation").addEventListener("change", (event) => {
-  const box = item();
-  const input = event.currentTarget;
-  if (box && input.value && input.checkValidity()) box.elevation = input.valueAsNumber;
-  render();
-});
+for (const [id, property] of [["item-elevation", "elevation"], ["item-base", "base"]]) {
+  $(id).addEventListener("change", event => {
+    const box = item();
+    const input = event.currentTarget;
+    if (box && input.value && input.checkValidity()) box[property] = input.valueAsNumber;
+    render();
+  });
+}
 $("export").addEventListener("click", () => canvas.toBlob((blob) => {
   if (blob) download(blob, preview3D ? "oda-yerlesimi-3d.png" : "oda-yerlesimi.png");
 }));
