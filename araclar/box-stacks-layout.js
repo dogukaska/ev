@@ -73,7 +73,9 @@ export function settle(next, others) {
 
 export function starter(id, count) {
   const seed = hashOf(id);
-  return { id, x: 91 + (count % 3) * 82 + seed % 34, y: 141 + ((count * 63) % 225) + seed % 24,
+  const right = stage.width - 90;
+  const landingY = stage.width === 700 ? 162 : 103;
+  return { id, x: right - (count % 3) * 42 - seed % 21, y: landingY + ((count * 59) % 196) + seed % 17,
     angle: (seed % 29) - 14 };
 }
 

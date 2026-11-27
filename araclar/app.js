@@ -2,7 +2,7 @@ import { $, dateLabel, download, element, today } from "/gunluk/common.js?v=1";
 import { listRecords, getAttachment, putRecord, deleteRecord } from "./storage.js";
 import { exportMeter, exportReminder, exportWarranty } from "./exports.js";
 import { startPaint } from "./paint.js";
-import { startBoxStacks } from "./box-stacks.js?v=2";
+import { startBoxStacks } from "./box-stacks.js?v=3";
 
 const tools = {
   kutu: ["Taşınma Kutusu Bulucu", "Kutularını kaydet, içindekileri ara ve etiket yazdır."],

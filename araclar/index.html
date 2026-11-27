@@ -7,9 +7,9 @@
 <link rel="icon" href="/icons/dijital-caki.svg">
 <link rel="stylesheet" href="/tool.css?v=20261126d">
 <link rel="stylesheet" href="/gunluk/style.css?v=1">
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 <script src="/theme.js?v=20261126c"></script>
-<script type="module" src="app.js?v=3"></script>
+<script type="module" src="app.js?v=4"></script>
 </head>
 <body>
 <main class="tool daily house">
@@ -33,20 +33,9 @@
   </form>
   <section class="panel" id="box-preview" aria-labelledby="box-preview-heading" hidden>
     <h2 id="box-preview-heading">Koliler</h2>
-    <p class="muted" id="stacks-help">Kolileri boşlukta sürükle, üst üste bırak veya döndür. Klavyede ok tuşlarıyla taşı, Q ve E ile döndür.</p>
-    <svg id="stacks-scene" viewBox="0 0 700 470" aria-label="Sürüklenebilir koli yerleşimi" aria-describedby="stacks-help" role="group"></svg>
+    <p class="muted" id="stacks-help">Koliyi gövdesinden tutup sayfanın istediğin yerine bırak. Köşesinden tutup döndür.</p>
     <div class="box-controls">
       <label>Seçili kutu<select id="stacks-box"></select></label>
-      <div class="box-arrows" aria-label="Kutuyu taşı" role="group">
-        <button type="button" data-box-step="0,-1" aria-label="Yukarı taşı">↑</button>
-        <button type="button" data-box-step="-1,0" aria-label="Sola taşı">←</button>
-        <button type="button" data-box-step="0,1" aria-label="Aşağı taşı">↓</button>
-        <button type="button" data-box-step="1,0" aria-label="Sağa taşı">→</button>
-      </div>
-    </div>
-    <div class="row box-turns" aria-label="Kutuyu döndür" role="group">
-      <button type="button" data-box-turn="-12">↶ Sola döndür</button>
-      <button type="button" data-box-turn="12">↷ Sağa döndür</button>
     </div>
     <p id="stacks-feedback" class="muted" aria-live="polite"></p>
   </section>
