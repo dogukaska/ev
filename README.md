@@ -21,3 +21,5 @@ Mobilyalarda ayrı parçalardan model oluşturma yaklaşımı FloorPlan 3D’den
 Dört Ev aracının geliştirilmesi, Tarif Kartı’nın Ev’e taşınması, mobilya modellerinin geliştirilmesi ve tarayıcı testleri OpenAI Codex desteğiyle yapıldı.
 
 Odaya Sığar mı? için FloorPlan 3D’nin ev eşyası grupları incelenerek Türkçe, ölçüleri düzenlenebilir 114 hazır eşya eklendi. Katalog, modelleme ve tarayıcı testleri OpenAI Codex desteğiyle yapıldı.
+
+Taşınma Kutusu Bulucu’nun 3D koli yerleşimi, dokunmatik sürükleme, erişilebilir taşıma kontrolleri ve tarayıcı testleri OpenAI Codex desteğiyle geliştirildi.

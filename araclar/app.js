@@ -2,6 +2,7 @@ import { $, dateLabel, download, element, today } from "/gunluk/common.js?v=1";
 import { listRecords, getAttachment, putRecord, deleteRecord } from "./storage.js";
 import { exportMeter, exportReminder, exportWarranty } from "./exports.js";
 import { startPaint } from "./paint.js";
+import { startBoxStacks } from "./box-stacks.js?v=1";
 
 const tools = {
   kutu: ["Taşınma Kutusu Bulucu", "Kutularını kaydet, içindekileri ara ve etiket yazdır."],
@@ -37,6 +38,7 @@ async function startRecords() {
   const submit = form.querySelector('[type="submit"]');
   const submitLabel = submit.textContent;
   let rows = [], editing, busy = false;
+  const stacks = mode === "kutu" ? startBoxStacks() : undefined;
 
   const fold = value => value.toLocaleLowerCase("tr").normalize("NFD").replace(/\p{M}/gu, "").replaceAll("ı", "i").trim();
   const meterKey = record => record.kind + ":" + fold(record.meter);
@@ -164,6 +166,7 @@ async function startRecords() {
       visible = rows.filter(record => fold(values.map(name => record[name]).join(" ")).includes(query))
         .sort(compare).map(record => ({ record }));
     }
+    stacks?.update(rows, visible.map(({ record }) => record.id));
     const items = visible.map(({ record, delta }) => recordItem(record, delta));
     if (!items.length) items.push(element("li", rows.length ? "Eşleşen kayıt bulunamadı." : "Henüz kayıt yok.", { class: "muted" }));
     $("records").replaceChildren(...items);
@@ -187,7 +190,10 @@ async function startRecords() {
         return status("Bu sayaç için aynı tarihte bir okuma var. Mevcut kaydı düzenleyebilirsin.");
       }
     }
-    if (mode === "kutu") record.uniqueKey = "kutu:" + fold(record.code);
+    if (mode === "kutu") {
+      record.uniqueKey = "kutu:" + fold(record.code);
+      record.createdAt = editing?.createdAt ?? Date.now();
+    }
     if (mode === "sayac") record.uniqueKey = "sayac:" + meterKey(record) + ":" + record.date;
     const attachment = input("attachment")?.files[0];
     if (attachment?.size > 12 * 1024 * 1024) return status("12 MB veya daha küçük bir dosya seç.");

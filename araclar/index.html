@@ -7,9 +7,9 @@
 <link rel="icon" href="/icons/dijital-caki.svg">
 <link rel="stylesheet" href="/tool.css?v=20261126d">
 <link rel="stylesheet" href="/gunluk/style.css?v=1">
-<link rel="stylesheet" href="style.css?v=1">
+<link rel="stylesheet" href="style.css?v=2">
 <script src="/theme.js?v=20261126c"></script>
-<script type="module" src="app.js?v=1"></script>
+<script type="module" src="app.js?v=2"></script>
 </head>
 <body>
 <main class="tool daily house">
@@ -31,6 +31,21 @@
     </div>
     <div class="row"><button type="submit" class="primary">Kutuyu kaydet</button><button id="cancel" type="button" hidden>İptal</button></div>
   </form>
+  <section class="panel" id="box-preview" aria-labelledby="box-preview-heading" hidden>
+    <h2 id="box-preview-heading">Koliler · 3D görünüm</h2>
+    <p class="muted" id="stacks-help">Kutuyu boş zemine veya başka bir kutunun üstüne sürükle. Klavyede ok tuşlarını kullan.</p>
+    <svg id="stacks-scene" viewBox="0 0 700 420" aria-label="Sürüklenebilir koli yerleşimi" aria-describedby="stacks-help" role="group"></svg>
+    <div class="box-controls">
+      <label>Seçili kutu<select id="stacks-box"></select></label>
+      <div class="box-arrows" aria-label="Kutuyu taşı" role="group">
+        <button type="button" data-box-step="0,-1" aria-label="Arkaya taşı">↑</button>
+        <button type="button" data-box-step="-1,0" aria-label="Sola taşı">←</button>
+        <button type="button" data-box-step="0,1" aria-label="Öne taşı">↓</button>
+        <button type="button" data-box-step="1,0" aria-label="Sağa taşı">→</button>
+      </div>
+    </div>
+    <p id="stacks-feedback" class="muted" aria-live="polite"></p>
+  </section>
   <section class="panel">
     <h2>Kutular</h2>
     <label>Ara<input id="filter" type="search" placeholder="Eşya, oda veya kutu kodu"></label>
