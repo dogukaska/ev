@@ -7,7 +7,7 @@
 <link rel="icon" href="/icons/dijital-caki.svg">
 <link rel="stylesheet" href="/tool.css?v=20261126d">
 <link rel="stylesheet" href="/gunluk/style.css?v=1">
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 <script src="/theme.js?v=20261126c"></script>
 <script type="module" src="app.js?v=4"></script>
 </head>
@@ -52,8 +52,10 @@
     <div class="fields">
       <label class="wide">Ürün adı<input name="product" maxlength="100" required></label>
       <label class="wide">Seri numarası<input name="serial" maxlength="80"></label>
-      <label>Alış tarihi<input name="purchase" type="date" min="1900-01-01" max="9999-12-31"></label>
-      <label>Garanti bitişi<input name="expires" type="date" min="1900-01-01" max="9999-12-30" required></label>
+      <div class="fields warranty-dates wide">
+        <label>Alış tarihi<input name="purchase" type="date" min="1900-01-01" max="9999-12-31"></label>
+        <label>Garanti bitişi<input name="expires" type="date" min="1900-01-01" max="9999-12-30" required></label>
+      </div>
       <label class="wide">Fiş veya fatura <span class="muted">(isteğe bağlı, en fazla 12 MB)</span><input name="attachment" type="file" accept="image/*,application/pdf,.heic,.heif"></label>
       <label class="wide check" id="remove-attachment" hidden><input name="removeAttachment" type="checkbox"> Mevcut fişi kaldır</label>
     </div>
