@@ -19,3 +19,5 @@ Kutu, garanti ve sayaç kayıtları cihazda IndexedDB’de saklanır. Garanti ZI
 Mobilyalarda ayrı parçalardan model oluşturma yaklaşımı FloorPlan 3D’den uyarlandı. [MIT lisansı](yerlesim/FloorPlan-3D-LICENSE) kaynak depoya aittir.
 
 Dört Ev aracının geliştirilmesi, Tarif Kartı’nın Ev’e taşınması, mobilya modellerinin geliştirilmesi ve tarayıcı testleri OpenAI Codex desteğiyle yapıldı.
+
+Odaya Sığar mı? için FloorPlan 3D’nin ev eşyası grupları incelenerek Türkçe, ölçüleri düzenlenebilir 114 hazır eşya eklendi. Katalog, modelleme ve tarayıcı testleri OpenAI Codex desteğiyle yapıldı.
