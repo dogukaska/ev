@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ev Araçları · Dijital Çakı</title>
+<link rel="icon" href="/icons/dijital-caki.svg">
+<link rel="stylesheet" href="/tool.css?v=20261126d">
+<link rel="stylesheet" href="/gunluk/style.css?v=1">
+<link rel="stylesheet" href="style.css?v=1">
+<script src="/theme.js?v=20261126c"></script>
+<script type="module" src="app.js?v=1"></script>
+</head>
+<body>
+<main class="tool daily house">
+<header>
+  <a class="back" href="/#ev">Uygulamalar</a>
+  <h1 id="title">Ev Araçları</h1>
+  <p class="intro" id="intro"></p>
+</header>
+<div id="tool"></div>
+<p id="status" role="status"></p>
+<noscript>Bu araç JavaScript gerektirir.</noscript>
+
+<template id="kutu">
+  <form id="record" class="panel">
+    <div class="fields">
+      <label>Kutu kodu<input name="code" placeholder="MUTFAK-03" maxlength="32" required></label>
+      <label>Oda<input name="room" placeholder="Mutfak" maxlength="60"></label>
+      <label class="wide">İçindekiler<textarea name="contents" rows="3" maxlength="2500" placeholder="Kahve değirmeni, kupalar…" required></textarea></label>
+    </div>
+    <div class="row"><button type="submit" class="primary">Kutuyu kaydet</button><button id="cancel" type="button" hidden>İptal</button></div>
+  </form>
+  <section class="panel">
+    <h2>Kutular</h2>
+    <label>Ara<input id="filter" type="search" placeholder="Eşya, oda veya kutu kodu"></label>
+    <ul class="clean" id="records"></ul>
+  </section>
+  <section id="print-label" aria-label="Kutu etiketi"></section>
+</template>
+
+<template id="garanti">
+  <form id="record" class="panel">
+    <div class="fields">
+      <label class="wide">Ürün adı<input name="product" maxlength="100" required></label>
+      <label class="wide">Seri numarası<input name="serial" maxlength="80"></label>
+      <label>Alış tarihi<input name="purchase" type="date" min="1900-01-01" max="9999-12-31"></label>
+      <label>Garanti bitişi<input name="expires" type="date" min="1900-01-01" max="9999-12-30" required></label>
+      <label class="wide">Fiş veya fatura <span class="muted">(isteğe bağlı, en fazla 12 MB)</span><input name="attachment" type="file" accept="image/*,application/pdf,.heic,.heif"></label>
+      <label class="wide check" id="remove-attachment" hidden><input name="removeAttachment" type="checkbox"> Mevcut fişi kaldır</label>
+    </div>
+    <div class="row"><button type="submit" class="primary">Ürünü kaydet</button><button id="cancel" type="button" hidden>İptal</button></div>
+  </form>
+  <section class="panel">
+    <h2>Ürünler</h2>
+    <label>Ara<input id="filter" type="search" placeholder="Ürün adı veya seri numarası"></label>
+    <ul class="clean" id="records"></ul>
+    <p class="muted">Her ürün için takvim dosyası, garanti bitişini ve 7 gün öncesi alarmını içerir. Bildirim için dosyayı takvimine ekle.</p>
+  </section>
+</template>
+
+<template id="boya">
+  <form id="paint-form" class="panel">
+    <div class="fields">
+      <label>Oda eni (m)<input name="width" type="number" inputmode="decimal" min="0.01" max="200" step="any" required></label>
+      <label>Oda boyu (m)<input name="length" type="number" inputmode="decimal" min="0.01" max="200" step="any" required></label>
+      <label>Duvar yüksekliği (m)<input name="height" type="number" inputmode="decimal" min="0.01" max="20" step="any" required></label>
+      <label>Kapı ve pencere (m²)<input name="openings" type="number" inputmode="decimal" min="0" step="any" value="0" required></label>
+      <label>Kat sayısı<input name="coats" type="number" inputmode="numeric" min="1" max="10" value="2" required></label>
+      <label>Kaplama (m²/L)<input name="coverage" type="number" inputmode="decimal" min="0.1" max="100" step="any" value="10" required></label>
+      <label>Ek pay (%)<input name="extra" type="number" inputmode="decimal" min="0" max="100" step="any" value="10" required></label>
+      <label class="wide">Kutu boyları (L)<input name="sizes" maxlength="80" value="1 2,5 5 10" aria-describedby="size-tip" required></label>
+    </div>
+    <p class="muted" id="size-tip">Boyları boşlukla ayır. Kaplama değerini boya kutusundan al.</p>
+    <button type="submit" class="primary">Hesapla</button>
+  </form>
+  <section class="panel" id="paint-result" aria-live="polite" hidden>
+    <h2>Boya alış listesi</h2>
+    <p id="paint-summary"></p>
+    <ul class="clean" id="paint-cans"></ul>
+    <p class="muted" id="paint-total"></p>
+  </section>
+</template>
+
+<template id="sayac">
+  <form id="record" class="panel">
+    <div class="fields">
+      <label>Sayaç türü<select name="kind"><option value="electric">Elektrik</option><option value="water">Su</option><option value="gas">Doğalgaz</option></select></label>
+      <label>Okuma tarihi<input name="date" type="date" min="1900-01-01" max="9999-12-31" required></label>
+      <label class="wide">Sayaç adı <span class="muted">(isteğe bağlı)</span><input name="meter" maxlength="60" placeholder="Ev, yazlık, ikinci sayaç…"></label>
+      <label class="wide">Endeks (<span id="meter-unit">kWh</span>)<input name="reading" type="number" inputmode="decimal" min="0" max="999999999" step="any" required></label>
+      <label class="wide">Sayaç fotoğrafı <span class="muted">(isteğe bağlı, en fazla 12 MB)</span><input name="attachment" type="file" accept="image/*,.heic,.heif"></label>
+      <label class="wide check" id="remove-attachment" hidden><input name="removeAttachment" type="checkbox"> Mevcut fotoğrafı kaldır</label>
+    </div>
+    <div class="row"><button type="submit" class="primary">Okumayı kaydet</button><button id="cancel" type="button" hidden>İptal</button></div>
+  </form>
+  <section class="panel">
+    <div class="row section-heading"><h2>Okumalar</h2><button type="button" id="csv" disabled>CSV indir</button></div>
+    <label>Sayaç türüne göre göster<select id="filter"><option value="">Tümü</option><option value="electric">Elektrik</option><option value="water">Su</option><option value="gas">Doğalgaz</option></select></label>
+    <ul class="clean" id="records"></ul>
+  </section>
+</template>
+</main>
+</body>
+</html>

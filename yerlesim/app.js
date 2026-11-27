@@ -1,5 +1,6 @@
 import { $, download, element, read, save } from "/gunluk/common.js?v=1";
-import { drawRoom3D } from "./room-3d.js?v=2";
+import { drawRoom3D } from "./room-3d.js?v=3";
+import { modelChoices, modelParts, modelRect } from "./furniture-models.js?v=1";
 
 const storageKey = "dijital-caki-oda-1";
 const canvas = $("room");
@@ -11,6 +12,9 @@ let scale, originX, originY, drag;
 let preview3D = false;
 let viewAngle = 0;
 let projection3D;
+for (const id of ["new-model", "item-model"]) {
+  $(id).append(...modelChoices.map(([value, label]) => element("option", label, { value })));
+}
 
 function clampPosition(box, x = box.x, y = box.y) {
   box.x = Math.max(0, Math.min(x, layout.width - box.width));
@@ -53,8 +57,10 @@ function draw() {
   const ink = css.getPropertyValue("--ink");
   const bg = css.getPropertyValue("--bg");
   const muted = css.getPropertyValue("--mute");
+  const theme = document.documentElement.dataset.theme;
+  const dark = theme === "dark" || (!theme && matchMedia("(prefers-color-scheme: dark)").matches);
   if (preview3D) {
-    projection3D = drawRoom3D(ctx, layout, doorInfo(), selected, { bg, ink, muted }, viewAngle);
+    projection3D = drawRoom3D(ctx, layout, doorInfo(), selected, { bg, ink, muted, dark }, viewAngle);
     return;
   }
   const padding = 48;
@@ -69,6 +75,18 @@ function draw() {
   ctx.strokeStyle = ink;
   ctx.fillStyle = muted;
   ctx.lineWidth = 2;
+  ctx.fillStyle = dark ? "#514940" : "#efe3d0";
+  ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  ctx.strokeStyle = dark ? "#63574a" : "#e0cdb2";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let line = 24 * scale; line < h; line += 24 * scale) {
+    ctx.moveTo(0, line);
+    ctx.lineTo(w, line);
+  }
+  ctx.stroke();
+  ctx.restore();
   ctx.strokeRect(0, 0, w, h);
   ctx.font = "18px system-ui";
   ctx.textAlign = "center";
@@ -94,9 +112,12 @@ function draw() {
   for (const box of layout.items) {
     const x = box.x * scale, y = box.y * scale, bw = box.width * scale, bh = box.height * scale;
     const active = box.id === selected;
-    ctx.globalAlpha = active ? .27 : .12;
-    ctx.fillStyle = ink;
-    ctx.fillRect(x, y, bw, bh);
+    ctx.globalAlpha = dark ? .82 : .92;
+    for (const part of [...modelParts(box)].sort((a, b) => a[5] - b[5])) {
+      const [a, b, c, d] = modelRect(part, box.rotation ?? 0);
+      ctx.fillStyle = part[6];
+      ctx.fillRect(x + a * bw, y + b * bh, (c - a) * bw, (d - b) * bh);
+    }
     ctx.globalAlpha = 1;
     ctx.strokeStyle = active ? ink : muted;
     ctx.lineWidth = active ? 3 : 1.5;
@@ -108,9 +129,12 @@ function draw() {
       ctx.beginPath();
       ctx.rect(x, y, bw, bh);
       ctx.clip();
-      ctx.fillStyle = ink;
-      ctx.font = "15px system-ui";
+      ctx.font = "600 15px system-ui";
       ctx.textBaseline = "middle";
+      const textWidth = Math.min(bw - 6, ctx.measureText(box.name).width);
+      ctx.fillStyle = "#272725c9";
+      ctx.fillRect(x + (bw - textWidth) / 2 - 2, y + bh / 2 - 9, textWidth + 4, 18);
+      ctx.fillStyle = "#fffaf4";
       ctx.fillText(box.name, x + bw / 2, y + bh / 2, bw - 6);
       ctx.restore();
     }
@@ -133,7 +157,9 @@ function render(persist = true) {
     $("item-x").value = box.x;
     $("item-y").value = box.y;
     $("item-elevation").value = box.elevation ?? 80;
+    $("item-model").value = box.model ?? "auto";
   }
+  $("model-field").hidden = !box;
   $("position").hidden = !box || preview3D;
   $("elevation-field").hidden = !box || !preview3D;
   $("rotate").disabled = $("remove").disabled = !box;
@@ -172,7 +198,7 @@ $("furniture").addEventListener("submit", (event) => {
     return;
   }
   const id = crypto.randomUUID();
-  layout.items.push({ id, name, width, height,
+  layout.items.push({ id, name, width, height, model: $("new-model").value,
     x: Math.max(0, Math.round((layout.width - width) / 2)),
     y: Math.max(0, Math.round((layout.height - height) / 2)) });
   selected = id;
@@ -186,6 +212,7 @@ $("rotate").addEventListener("click", () => {
     return;
   }
   [box.width, box.height] = [box.height, box.width];
+  box.rotation = ((box.rotation ?? 0) + 1) % 4;
   clampPosition(box);
   render();
 });
@@ -250,6 +277,12 @@ $("preview-3d").addEventListener("click", () => {
 $("turn-view").addEventListener("click", () => {
   viewAngle = (viewAngle + 1) % 4;
   draw();
+});
+$("item-model").addEventListener("change", event => {
+  const box = item();
+  if (!box) return;
+  box.model = event.currentTarget.value;
+  render();
 });
 $("item-elevation").addEventListener("change", (event) => {
   const box = item();

@@ -7,3 +7,15 @@
 Oda planı için [FloorPlan 3D](https://github.com/ecy88214/FloorPlan-3D-OpenSource) incelendi.
 
 Odaya Sığar mı?’nın geliştirilmesi, sürüklenebilir 3D önizlemenin eklenmesi ve tarayıcı testleri OpenAI Codex desteğiyle yapıldı.
+
+- [Taşınma Kutusu Bulucu](https://dogukaska.github.io/ev/araclar/?arac=kutu) kutu içeriğinde arama yapar ve etiket yazdırır.
+- [Fiş ve Garanti Arşivi](https://dogukaska.github.io/ev/araclar/?arac=garanti) garanti tarihlerini ve fişleri saklar, takvim ve ZIP dosyası verir.
+- [Boya Alış Listesi](https://dogukaska.github.io/ev/araclar/?arac=boya) net duvar alanı ile kutu boyuna göre alış listesi çıkarır.
+- [Sayaç Okuma Defteri](https://dogukaska.github.io/ev/araclar/?arac=sayac) tarih, endeks, fotoğraf ve tüketim kaydını tutar, CSV dosyası verir.
+- [Tarif Kartı](https://dogukaska.github.io/ev/tarif/) tarifleri saklar ve porsiyonları ölçekler.
+
+Kutu, garanti ve sayaç kayıtları cihazda IndexedDB’de saklanır. Garanti ZIP çıktısı için [JSZip](https://github.com/Stuk/jszip), Tarif Kartı’ndaki kesirler için [Fraction.js](https://github.com/rawify/Fraction.js) kullanılır.
+
+Mobilyalarda ayrı parçalardan model oluşturma yaklaşımı FloorPlan 3D’den uyarlandı. [MIT lisansı](yerlesim/FloorPlan-3D-LICENSE) kaynak depoya aittir.
+
+Dört Ev aracının geliştirilmesi, Tarif Kartı’nın Ev’e taşınması, mobilya modellerinin geliştirilmesi ve tarayıcı testleri OpenAI Codex desteğiyle yapıldı.
