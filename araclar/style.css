@@ -1,0 +1,20 @@
+.house h2 { font-size: 1.05rem; }
+.house .section-heading { justify-content: space-between; }
+.house .clean { margin-bottom: 0; }
+.house .clean > li { padding: 11px 0; }
+.house .clean > li:last-child { border-bottom: 0; }
+.house .clean p { margin: 3px 0; }
+.house .record-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.house .record-actions button { padding: 5px 9px; }
+.house .item-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.house input[type="date"] { inline-size: 100%; min-inline-size: 0; }
+.house .fields label { overflow-wrap: anywhere; }
+.house #status { min-height: 1.5em; color: var(--mute); }
+#print-label { display: none; }
+@media print {
+  .house:has(#print-label) { max-width: none; margin: 0; padding: 0; }
+  .house:has(#print-label) > :not(#tool),
+  .house #tool:has(#print-label) > :not(#print-label) { display: none !important; }
+  #print-label { display: block; box-sizing: border-box; break-inside: avoid; width: 100mm; max-width: 100%; padding: 5mm; border: 1px solid black; color: black; background: white; }
+  #print-label strong { display: block; font-size: 24pt; }
+}
