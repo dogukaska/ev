@@ -71,6 +71,18 @@ function applyPreset() {
   $("base-new").value = base;
 }
 
+const screenParams = new URLSearchParams(location.search);
+const screenWidth = Number(screenParams.get("ekranEni"));
+const screenHeight = Number(screenParams.get("ekranBoyu"));
+if (Number.isInteger(screenWidth) && screenWidth >= 1 && screenWidth <= 2000 &&
+    Number.isInteger(screenHeight) && screenHeight >= 1 && screenHeight <= 500) {
+  modelSelect.value = "television";
+  applyPreset();
+  $("width").value = screenWidth;
+  $("height-new").value = screenHeight;
+  $("catalog-info").textContent = "Ekran ölçüleri dolduruldu. Cihazın derinliğini ve varsa ayak ölçülerini kontrol et.";
+}
+
 function clampPosition(box, x = box.x, y = box.y) {
   box.x = Math.max(0, Math.min(x, layout.width - box.width));
   box.y = Math.max(0, Math.min(y, layout.height - box.height));

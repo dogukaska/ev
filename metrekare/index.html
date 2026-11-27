@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Metrekare ve Malzeme Adedi · Dijital Çakı</title>
+<link rel="icon" href="/icons/dijital-caki.svg">
+<link rel="stylesheet" href="/tool.css?v=20261126d">
+<link rel="stylesheet" href="/gunluk/style.css?v=1">
+<link rel="stylesheet" href="./style.css?v=1">
+<script src="/theme.js?v=20261126c"></script>
+<script type="module" src="./app.js?v=1"></script>
+</head>
+<body>
+<main class="tool daily flooring">
+<header>
+  <a class="back" href="/#ev">Uygulamalar</a>
+  <h1>Metrekare ve Malzeme Adedi</h1>
+  <p class="intro">Alanları topla, fayans veya parke için kaç paket gerektiğini hesapla.</p>
+</header>
+<form id="floor-form" class="panel">
+  <div id="areas"></div>
+  <div class="row"><button id="add-area" type="button">Alan ekle</button></div>
+  <div class="fields">
+    <label>Fire oranı (%)<input name="waste" inputmode="decimal" maxlength="9" value="0" required></label>
+    <label>Paket başına alan (m²)<input name="coverage" inputmode="decimal" maxlength="9" placeholder="İsteğe bağlı"></label>
+  </div>
+  <div class="row"><button class="primary">Hesapla</button></div>
+</form>
+<div id="status" role="status"></div>
+<template id="area-template">
+  <fieldset class="area">
+    <legend></legend>
+    <div class="fields">
+      <label>En (m)<input name="width" inputmode="decimal" maxlength="9" required></label>
+      <label>Boy (m)<input name="length" inputmode="decimal" maxlength="9" required></label>
+    </div>
+    <button class="remove-area" type="button">Alanı kaldır</button>
+  </fieldset>
+</template>
+</main>
+</body>
+</html>
