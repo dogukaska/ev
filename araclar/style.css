@@ -22,7 +22,8 @@
 #stacks-scene {
   display: block;
   width: 100%;
-  aspect-ratio: 5 / 3;
+  aspect-ratio: 70 / 47;
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: var(--bg);
@@ -32,10 +33,12 @@
 #stacks-scene [data-box-id] { cursor: grab; }
 #stacks-scene.is-dragging, #stacks-scene.is-dragging [data-box-id] { cursor: grabbing; }
 #stacks-scene [data-box-id]:focus-visible { outline: none; }
-#stacks-scene [data-box-id]:focus-visible .box-label { stroke: var(--ink); stroke-width: 2; }
+#stacks-scene [data-box-id]:focus-visible polygon { stroke: var(--ink); stroke-width: 2; }
 .house #stacks-feedback { margin: 5px 0 0; }
 .house .box-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; }
 .house .box-controls label { min-width: 0; }
 .house .box-controls select { margin-top: 3px; text-overflow: ellipsis; }
 .house .box-arrows { display: flex; gap: 3px; }
 .house .box-arrows button { min-width: 32px; min-height: 34px; padding: 4px 6px; }
+
+.house .box-turns { margin-top: 6px; }
