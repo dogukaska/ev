@@ -29,3 +29,5 @@ Serbest koli yerleşimi, döndürme, desteksiz bırakıldığında kayma ve yeni
 Taşınma Kutusu Bulucu’da koliler tüm sayfada taşınabilir ve köşeden tutularak döndürülebilir. Köşeden döndürme etkileşimi için [Konva](https://konvajs.org/docs/select_and_transform/Rotate_Mode.html), sürükleme sırasında otomatik kaydırma için [interact.js](https://interactjs.io/docs/action-options/#autoscroll) incelendi. Uygulama ve tarayıcı testleri OpenAI Codex desteğiyle geliştirildi.
 
 Fiş ve Garanti Arşivi’nin tarih alanları dar ekranlara uyarlandı ve mobil tarayıcılarda OpenAI Codex desteğiyle test edildi.
+
+Metrekare ve Malzeme Adedi ile ekran ölçülerini oda planına aktarma OpenAI Codex desteğiyle eklendi.

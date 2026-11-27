@@ -1,0 +1,5 @@
+.flooring .area { min-inline-size: 0; margin: 0 0 8px; padding: 8px 10px 10px; border: 1px solid var(--line); border-radius: 8px; }
+.flooring .area legend { padding: 0 4px; font-size: .875rem; }
+.flooring .remove-area { margin-top: 8px; }
+.flooring .fields { align-items: end; }
+.flooring .fields input { display: block; max-inline-size: 100%; }
