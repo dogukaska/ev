@@ -1,27 +1,58 @@
 import { $, element, read, save } from "/gunluk/common.js?v=1";
-import { animateCarton, cartonNodes, positionCarton } from "./box-stacks-scene.js?v=2";
-import { fromGrid, inside, settle, stage, starter } from "./box-stacks-layout.js?v=1";
+import { animateCarton, cartonNodes, positionCarton } from "./box-stacks-scene.js?v=3";
+import { fromGrid, inside, settle, stage, starter } from "./box-stacks-layout.js?v=2";
 
-const storageKey = "dijital-caki-koli-duzeni-2";
+const storageKey = "dijital-caki-koli-duzeni-3";
+const framedKey = "dijital-caki-koli-duzeni-2";
 const legacyKey = "dijital-caki-koli-duzeni-1";
 const directions = { ArrowUp: [0, -18], ArrowLeft: [-18, 0], ArrowDown: [0, 18], ArrowRight: [18, 0] };
 
 export function startBoxStacks() {
   const section = $("box-preview");
-  const scene = $("stacks-scene");
+  const main = section.closest("main");
+  const scene = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  scene.id = "stacks-scene";
+  scene.setAttribute("role", "group");
+  scene.setAttribute("aria-label", "Sayfa boyunca taşınabilir koliler");
+  scene.setAttribute("aria-describedby", "stacks-help");
+  document.body.classList.add("box-page");
+  document.body.prepend(scene);
   const chooser = $("stacks-box");
   const feedback = $("stacks-feedback");
-  scene.setAttribute("viewBox", `0 0 ${stage.width} ${stage.height}`);
   let boxes = new Map();
   let placements = [];
   let matching = new Set();
   let nodes = new Map();
-  let selected, pointer;
+  let selected, pointer, scrollFrame;
   let storageFailed = false;
 
   function saveLayout() {
-    storageFailed = !save(storageKey, placements);
+    storageFailed = !save(storageKey, { width: stage.width, placements });
   }
+
+  function resizeScene(rescale = true) {
+    const width = document.documentElement.clientWidth;
+    const bottom = main.getBoundingClientRect().bottom + window.scrollY;
+    const height = Math.max(document.documentElement.clientHeight, Math.ceil(bottom));
+    const scale = Math.min(1, width / 700);
+    const previousWidth = stage.width, previousHeight = stage.height;
+    stage.width = width / scale;
+    stage.height = height / scale;
+    scene.style.height = height + "px";
+    scene.setAttribute("viewBox", `0 0 ${stage.width} ${stage.height}`);
+    if (!rescale || pointer || (previousWidth === stage.width && previousHeight === stage.height)) return;
+    let changed = false;
+    placements = placements.map(box => {
+      const next = inside({ ...box, x: box.x * stage.width / previousWidth });
+      if (next.x !== box.x || next.y !== box.y) changed = true;
+      return next;
+    });
+    if (changed) { saveLayout(); render(); }
+  }
+
+  resizeScene();
+  new ResizeObserver(resizeScene).observe(main);
+  window.addEventListener("resize", resizeScene);
 
   function refreshSelection() {
     chooser.value = selected ?? "";
@@ -112,7 +143,8 @@ export function startBoxStacks() {
     const point = coordinates(event);
     if (!box || !point) return;
     scene.setPointerCapture(event.pointerId);
-    pointer = { pointerId: event.pointerId, origin: point, box };
+    pointer = { pointerId: event.pointerId, origin: point, box,
+      rotating: Boolean(event.target.closest("[data-box-corner]")) };
     setSelected(id);
     event.preventDefault();
   });
@@ -120,22 +152,46 @@ export function startBoxStacks() {
   function heldPose(event) {
     const point = coordinates(event);
     if (!point) return undefined;
-    const { origin, box } = pointer;
+    const { origin, box, rotating } = pointer;
+    if (rotating) {
+      const bearing = at => Math.atan2(at.y - box.y, at.x - box.x);
+      const delta = (bearing(point) - bearing(origin)) * 180 / Math.PI;
+      const angle = ((box.angle + delta + 540) % 360) - 180;
+      return { ...box, angle, support: undefined };
+    }
     return { ...box, x: box.x + point.x - origin.x, y: box.y + point.y - origin.y, support: undefined };
+  }
+
+  function autoscroll() {
+    if (!pointer?.dragging || pointer.rotating) return;
+    const event = pointer.last;
+    const edge = 58;
+    const height = document.documentElement.clientHeight;
+    const distance = event.clientY < edge ? event.clientY - edge :
+      event.clientY > height - edge ? event.clientY - (height - edge) : 0;
+    if (distance) {
+      window.scrollBy({ top: Math.max(-23, Math.min(23, distance * .34)), behavior: "instant" });
+      const next = heldPose(event);
+      if (next) positionCarton(nodes.get(next.id), inside(next));
+    }
+    scrollFrame = requestAnimationFrame(autoscroll);
   }
 
   scene.addEventListener("pointermove", event => {
     if (pointer?.pointerId !== event.pointerId) return;
+    pointer.last = { clientX: event.clientX, clientY: event.clientY };
+    const point = coordinates(event);
     const next = heldPose(event);
-    if (!next) return;
-    const box = pointer.box;
-    if (!pointer.dragging && Math.hypot(next.x - box.x, next.y - box.y) < 7) return;
+    if (!point || !next) return;
+    const { box, origin } = pointer;
+    if (!pointer.dragging && Math.hypot(point.x - origin.x, point.y - origin.y) < 7) return;
     if (!pointer.dragging) {
       pointer.dragging = true;
       const carton = nodes.get(box.id);
       scene.insertBefore(carton.faces, scene.children[placements.length] ?? null);
       scene.append(carton.label);
       scene.classList.add("is-dragging");
+      if (!pointer.rotating) scrollFrame = requestAnimationFrame(autoscroll);
     }
     positionCarton(nodes.get(box.id), inside(next));
   });
@@ -144,6 +200,7 @@ export function startBoxStacks() {
     if (pointer?.pointerId !== event.pointerId) return;
     const next = pointer.dragging && commit ? heldPose(event) : undefined;
     pointer = undefined;
+    cancelAnimationFrame(scrollFrame);
     scene.classList.remove("is-dragging");
     if (next) move(next);
     else render();
@@ -168,12 +225,6 @@ export function startBoxStacks() {
     }
   });
   chooser.addEventListener("change", () => setSelected(chooser.value));
-  for (const button of section.querySelectorAll("[data-box-step]")) {
-    button.addEventListener("click", () => adjust(...button.dataset.boxStep.split(",").map(Number)));
-  }
-  for (const button of section.querySelectorAll("[data-box-turn]")) {
-    button.addEventListener("click", () => adjust(0, 0, Number(button.dataset.boxTurn)));
-  }
 
   return {
     update(records, visible) {
@@ -181,16 +232,22 @@ export function startBoxStacks() {
       boxes = new Map(records.map(box => [box.id, box]));
       matching = new Set(visible);
       section.hidden = !boxes.size;
+      resizeScene(false);
       const fromDisk = read(storageKey, null);
+      const framed = fromDisk === null ? read(framedKey, null) : null;
       const ids = new Set();
-      const saved = Array.isArray(fromDisk) && !storageFailed ? fromDisk : placements;
-      const legacy = fromDisk === null ? read(legacyKey, []) : [];
+      const oldStage = Array.isArray(framed);
+      const stored = Array.isArray(fromDisk?.placements) && !storageFailed ? fromDisk.placements : placements;
+      const saved = oldStage && !storageFailed ? framed : stored;
+      const formerWidth = oldStage ? 700 : fromDisk?.width > 0 ? fromDisk.width : stage.width;
+      const legacy = fromDisk === null && !oldStage ? read(legacyKey, []) : [];
       placements = saved.filter(entry => {
         if (!boxes.has(entry?.id) || ids.has(entry.id) ||
           ![entry.x, entry.y, entry.angle].every(Number.isFinite)) return false;
         ids.add(entry.id);
         return true;
-      }).map(entry => inside({ ...entry, support: boxes.has(entry.support) ? entry.support : undefined }));
+      }).map(entry => inside({ ...entry, x: entry.x * stage.width / formerWidth,
+        y: entry.y + (oldStage ? 150 : 0), support: boxes.has(entry.support) ? entry.support : undefined }));
       if (Array.isArray(legacy)) {
         const grid = [];
         for (const entry of legacy) {
@@ -217,7 +274,7 @@ export function startBoxStacks() {
           ] });
         }
       }
-      if (newBoxes.length || placements.length !== saved.length) saveLayout();
+      if (oldStage || newBoxes.length || placements.length !== saved.length) saveLayout();
       if (!boxes.has(selected) || (previous.size && newBoxes.length)) selected = newBoxes.at(-1)?.id ?? placements.at(-1)?.id;
       if (visible.length === 1 && visible.length < records.length) selected = visible[0];
       const options = [...records].sort((a, b) => a.code.localeCompare(b.code, "tr", { numeric: true }));

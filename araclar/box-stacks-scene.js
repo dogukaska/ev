@@ -1,4 +1,4 @@
-import { dimensions, hashOf } from "./box-stacks-layout.js?v=1";
+import { dimensions, hashOf } from "./box-stacks-layout.js?v=2";
 
 const ns = "http://www.w3.org/2000/svg";
 const cartons = [
@@ -31,7 +31,7 @@ export function cartonNodes(box, placement, active, matches) {
   const stroke = active ? "#4b7766" : "#885d40";
   const shape = (points, fill, line = true) => svg("polygon", {
     points: points.map(pair => pair.join(",")).join(" "), fill,
-    stroke: line ? stroke : "none", "stroke-width": active ? 2 : 1.25, "stroke-linejoin": "round",
+    stroke: line ? stroke : "none", "stroke-width": active ? 1.65 : 1.1, "stroke-linejoin": "round",
   });
   faces.append(svg("title", {}, [box.code, box.room].filter(Boolean).join(" · ")));
   faces.append(
@@ -44,6 +44,15 @@ export function cartonNodes(box, placement, active, matches) {
     shape([[tape, start], [tape + edge, y], [tape + edge + 11, y], [tape + 11, start]], "#f0debe", false),
     shape([[tape, start], [tape + 11, start], [tape + 11, start + h * .19], [tape, start + h * .19]], "#e4c9a2", false),
   );
+  faces.append(
+    svg("path", { d: `M ${x + 2} ${start + 3} H ${crease - 2} M ${crease + 2} ${end - 3} l ${edge - 4} ${-depth + 4}`,
+      fill: "none", stroke: "#fff1d7", "stroke-width": 1, opacity: .65, "pointer-events": "none" }),
+  );
+  for (const [cx, cy] of [[x + edge, y], [x + w, y], [x, end], [crease, end]]) {
+    faces.append(svg("circle", { cx, cy, r: 13, "data-box-corner": "", "aria-hidden": "true", fill: "transparent" }));
+    if (active) faces.append(svg("circle", { cx, cy, r: 2.75, class: "box-corner-dot", "aria-hidden": "true",
+      fill: "#fff7e7", stroke: "#486c5a", "stroke-width": .8 }));
+  }
   const text = box.code.length > 14 ? box.code.slice(0, 13) + "…" : box.code;
   const available = crease - x - 14;
   const font = Math.min(15, 1.55 * available / Math.max(4, text.length));

@@ -19,26 +19,29 @@
   #print-label strong { display: block; font-size: 24pt; }
 }
 
+/* The entire page is the play surface. Only cartons intercept pointer gestures. */
+body.box-page { position: relative; isolation: isolate; }
+.box-page .house { position: relative; z-index: 1; pointer-events: none; }
+.box-page .house :is(a, button, input, select, textarea) { pointer-events: auto; }
 #stacks-scene {
-  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  aspect-ratio: 70 / 47;
+  display: block;
+  z-index: 0;
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--bg);
+  pointer-events: none;
   touch-action: none;
   user-select: none;
 }
-#stacks-scene [data-box-id] { cursor: grab; }
-#stacks-scene.is-dragging, #stacks-scene.is-dragging [data-box-id] { cursor: grabbing; }
+#stacks-scene [data-box-id] :is(polygon, circle) { pointer-events: all; touch-action: none; cursor: grab; }
+#stacks-scene [data-box-id] .box-corner-dot { pointer-events: none; }
+#stacks-scene [data-box-id] [data-box-corner] { cursor: crosshair; }
+#stacks-scene.is-dragging [data-box-id] :is(polygon, circle) { cursor: grabbing; }
 #stacks-scene [data-box-id]:focus-visible { outline: none; }
 #stacks-scene [data-box-id]:focus-visible polygon { stroke: var(--ink); stroke-width: 2; }
 .house #stacks-feedback { margin: 5px 0 0; }
-.house .box-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; }
-.house .box-controls label { min-width: 0; }
+.house .box-controls { max-width: 18rem; }
 .house .box-controls select { margin-top: 3px; text-overflow: ellipsis; }
-.house .box-arrows { display: flex; gap: 3px; }
-.house .box-arrows button { min-width: 32px; min-height: 34px; padding: 4px 6px; }
-
-.house .box-turns { margin-top: 6px; }
+@media print { #stacks-scene { display: none; } }
